@@ -5,3 +5,4 @@ data/session/
 .env
 index.html
 data/job_application.md
+*.pyc
