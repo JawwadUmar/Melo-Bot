@@ -1,77 +1,201 @@
+from datetime import datetime
 from pathlib import Path
 
 from playwright.async_api import (
-    Locator,
-    Page,
+        Page,
 )
 
-from markdownify import markdownify as md
 from app.config.setting import OUTPUT_FILE
 
 
+async def _safe_inner_text(locator, default: str = "N/A", timeout: int = 4000) -> str:
+    try:
+        await locator.wait_for(state="visible", timeout=timeout)
+        text = await locator.inner_text()
+        return text.strip() if text else default
+    except Exception:
+        return default
+
 
 async def extractAndSavePageContent(page: Page):
-        print("🐙 Melo: Saving Job Details...")
-        # -------------------------
-        # 1. Function
-        # -------------------------
+    print("🐙 Melo: Saving Job Details...")
 
-        function =await page.locator("#job-description span[ng-repeat*='job_function_dict']").inner_text()
+    try:
+        await page.locator(".profile-heading").wait_for(state="visible", timeout=10000)
+    except Exception:
+        print("⚠️ Melo: Job modal profile heading not visible yet.")
 
-        function = function.strip()
+    job_title = await _safe_inner_text(page.locator(".profile-heading .profile-info h1"))
+    company = await _safe_inner_text(page.locator(".profile-heading .company-name"))
+    location = await _safe_inner_text(page.locator(".profile-heading .job-locations > span:first-child"))
+    experience = await _safe_inner_text(page.locator(".profile-heading .job-locations .experience"))
+    recruiter = await _safe_inner_text(page.locator(".profile-heading .rec-name"))
+    designation = await _safe_inner_text(page.locator(".profile-heading .designation"))
+    summary = await _safe_inner_text(page.locator("#job-description span[ng-repeat*='job_function_dict']"))
 
-        # -------------------------
-        # 2. Skills
-        # -------------------------
+    try:
+        skills_locator = page.locator("#job-skills-description li[ng-repeat*='keyword']")
+        skills = await skills_locator.all_inner_texts()
+        skills = [skill.strip() for skill in skills if skill and skill.strip()]
+    except Exception:
+        skills = []
 
-        skills = await page.locator(
-            "#job-skills-description li[ng-repeat*='keyword']"
-        ).all_inner_texts()
+    description_label = page.locator("div.profile-content.job-description")
+    description = await _safe_inner_text(description_label)
 
-        skills = [skill.strip() for skill in skills]
+    __addToMarkUpFile(job_title, company, location, experience, recruiter, designation, summary, skills, description)
 
-        # -------------------------
-        # 3. Job Description
-        # -------------------------
 
-        description = page.locator(
-            "div.profile-content.job-description"
-        )
 
-        await description.wait_for()
+def __addToMarkUpFile(
+    job_title,
+    company,
+    location,
+    experience,
+    recruiter,
+    designation,
+    summary,
+    skills,
+    description,
+):
+    """
+    Append a job to the Markdown file.
 
-        description_html = await description.inner_html()
+    Jobs are grouped by application date:
 
-        description_md = md(
-            description_html,
-            heading_style="ATX",
-            bullets="-",
-        ).strip()
+    ### 2026-08-18
 
-        # -------------------------
-        # 4. Build Markdown
-        # -------------------------
+    ## Senior Software Engineer
 
-        markdown = f"""# Job Description
+    ...
 
-## Function
+    ---
 
-{function}
+    ## Another Job
 
-## Skills
+    ...
+    """
+
+    output_file = Path(OUTPUT_FILE)
+
+    # Make sure the parent directory exists
+    output_file.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    # Current date
+    today = datetime.now().astimezone().date().isoformat()
+
+    # -----------------------------
+    # Clean values
+    # -----------------------------
+
+    job_title = job_title.strip()
+    company = company.strip()
+    location = location.strip()
+    experience = experience.strip()
+    recruiter = recruiter.strip()
+    designation = " ".join(designation.split())
+    summary = " ".join(summary.split())
+
+    # Remove accidental empty skills
+    skills = [
+        skill.strip()
+        for skill in skills
+        if skill and skill.strip()
+    ]
+
+    # -----------------------------
+    # Build job Markdown
+    # -----------------------------
+
+    job_markdown = f"""## {job_title}
+
+**Company:** {company}  
+**Location:** {location}  
+**Experience:** {experience}  
+
+### Recruiter
+
+**Name:** {recruiter}  
+**Designation:** {designation}
+
+### Function
+
+{summary}
+
+### Skills
 
 {", ".join(skills)}
 
-## Description
+### Job Description
 
-{description_md}
+{description}
+
 """
 
-        # -------------------------
-        # 5. Save
-        # -------------------------
+    # -----------------------------
+    # Read existing file
+    # -----------------------------
 
-        Path(OUTPUT_FILE).write_text(
-            markdown,
-            encoding="utf-8",
+    if output_file.exists():
+        existing_content = output_file.read_text(
+            encoding="utf-8"
         )
+    else:
+        existing_content = ""
+
+    # -----------------------------
+    # Check whether today's
+    # date section exists
+    # -----------------------------
+
+    date_heading = f"### {today}"
+
+    if date_heading in existing_content:
+        # Date already exists.
+        #
+        # Append the job at the end of the
+        # existing date section.
+        updated_content = (
+            existing_content.rstrip()
+            + "\n\n"
+            + job_markdown
+            + "\n---\n"
+        )
+
+    else:
+        # Date doesn't exist yet.
+        #
+        # Add a new date section.
+        if existing_content.strip():
+            updated_content = (
+                existing_content.rstrip()
+                + "\n\n"
+                + date_heading
+                + "\n\n"
+                + job_markdown
+                + "\n---\n"
+            )
+        else:
+            updated_content = (
+                "# Job Applications\n\n"
+                + date_heading
+                + "\n\n"
+                + job_markdown
+                + "\n---\n"
+            )
+
+    # -----------------------------
+    # Write back to file
+    # -----------------------------
+
+    output_file.write_text(
+        updated_content,
+        encoding="utf-8",
+    )
+
+    print(
+        f"✅ Melo: Job details appended to {output_file}"
+    )

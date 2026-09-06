@@ -3,13 +3,13 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from app.config.setting import EMAIL, PASSWORD
 from app.utils.human import human_delay, human_typing
+from app.utils.page_actions import clickElement, openURL
 
 
 async def handleLogin(page: Page):
     print("🐙 Melo: Handling Login...")
 
-    await page.goto("https://www.instahyre.com/login")
-    await page.wait_for_load_state("domcontentloaded")
+    await openURL(page, 'https://www.instahyre.com/login')
 
     # If session is active, Instahyre automatically redirects to candidate feed
     if "/candidate/" in page.url:
@@ -20,13 +20,13 @@ async def handleLogin(page: Page):
     passwordElement: Locator = page.get_by_label("Password", exact=True).locator("visible=true").first
     submitButtonElement: Locator = page.get_by_role("button", name="Login", exact=True).locator("visible=true").first
 
-    await emailElement.click()
+    await clickElement(emailElement)
     await human_typing(emailElement, EMAIL)
 
-    await passwordElement.click()
+    await clickElement(passwordElement)
     await human_typing(passwordElement, PASSWORD)
 
-    await submitButtonElement.click()
+    await clickElement(submitButtonElement)
 
     print("🐙 Melo: Waiting for login to complete (please solve 2FA if prompted)...")
 
