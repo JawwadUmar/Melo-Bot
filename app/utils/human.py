@@ -1,6 +1,7 @@
 import asyncio
 import random
-from playwright.async_api import (Page, Locator)
+
+from playwright.async_api import Locator, Page
 
 
 async def human_delay(min_sec=2, max_sec=5):

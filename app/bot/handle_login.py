@@ -1,6 +1,9 @@
-from playwright.async_api import (Page, Locator)
-from app.utils.human import (human_typing, human_delay)
-from app.config.setting import (EMAIL, PASSWORD)
+from playwright.async_api import Locator, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+from app.config.setting import EMAIL, PASSWORD
+from app.utils.human import human_delay, human_typing
+
 
 async def handleLogin(page: Page):
     print("🐙 Melo: Handling Login...")
@@ -27,7 +30,7 @@ async def handleLogin(page: Page):
         # Wait up to 2 minutes for the URL to change to the Instahyre feed, confirming login is successful
         await page.wait_for_url("**/candidate/**", timeout=120000)
         print("✅ Melo: Login confirmed!")
-    except Exception as e:
+    except PlaywrightTimeoutError:
         print("⚠️ Melo: Login timed out or failed. Check the browser.")
 
     await human_delay()

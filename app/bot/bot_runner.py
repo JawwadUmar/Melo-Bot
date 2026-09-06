@@ -4,9 +4,8 @@ from playwright.async_api import (
      async_playwright,
 )
 
-from app.config.setting import USER_DATA_DIRECTORY
-
 from app.bot.handle_login import handleLogin
+from app.config.setting import USER_DATA_DIRECTORY
 
 
 async def run_bot():
