@@ -35,7 +35,7 @@ def isExcludedJob(job_title: str, company_name: str) -> bool:
     for company in excluded_company_keywords:
         if company.lower() in company_name.lower():
             print(
-                f"🤖 Zozo: Skipping job because company is in the exclusion list: "
+                f"🐙 Melo: Skipping job because company is in the exclusion list: "
                 f"{company_name}"
             )
             return True
@@ -43,7 +43,7 @@ def isExcludedJob(job_title: str, company_name: str) -> bool:
     for keyword in excluded_job_title_keywords:
         if keyword.lower() in job_title.lower():
             print(
-                f"🤖 Zozo: Skipping job because job title contains an excluded keyword: "
+                f"🐙 Melo: Skipping job because job title contains an excluded keyword: "
                 f"{job_title}"
             )
             return True
