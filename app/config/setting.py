@@ -9,6 +9,7 @@ EMAIL = os.getenv("INSTAHYRE_EMAIL")
 PASSWORD = os.getenv("INSTAHYRE_PASSWORD")
 JOBLINK = os.getenv("INSTAHYRE_JOB_LINK")
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
+SKILL_MATCH_THRESHOLD = int(os.getenv("SKILL_MATCH_THRESHOLD", "2"))
 
 def _env_bool(name, default="false"):
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}

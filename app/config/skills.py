@@ -34,6 +34,7 @@ KEY_SKILLS = [
     "RAG",
     "Prompt Engineering",
     "Model Context Protocol",
+    "MCP",
     "Amazon Bedrock",
 
     # Distributed Systems & Streaming
@@ -112,3 +113,26 @@ KEY_SKILLS = [
     "Playwright",
     "Browser Automation",
 ]
+
+KEY_SKILLS_SET = {skill.lower().strip() for skill in KEY_SKILLS}
+
+
+from app.config.setting import SKILL_MATCH_THRESHOLD
+
+
+def skillMatch(skills: list[str])->bool:
+    if not skills:
+        return True
+    
+    cleaned_incoming_skills = [s.lower().strip() for s in skills if s and s.strip()]
+    if not cleaned_incoming_skills:
+        return True
+
+    match_count = sum(1 for skill in cleaned_incoming_skills if skill in KEY_SKILLS_SET)
+
+    if match_count == len(cleaned_incoming_skills):
+        return True
+
+    return match_count >= SKILL_MATCH_THRESHOLD
+
+    

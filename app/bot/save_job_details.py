@@ -1,9 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from playwright.async_api import (
-        Page,
-)
+from playwright.async_api import Error, Page
 
 from app.config.setting import OUTPUT_FILE
 
@@ -13,18 +11,20 @@ async def _safe_inner_text(locator, default: str = "N/A", timeout: int = 4000) -
         await locator.wait_for(state="visible", timeout=timeout)
         text = await locator.inner_text()
         return text.strip() if text else default
-    except Exception:
+    except Error:
         return default
 
 
-async def extractAndSavePageContent(page: Page):
-    print("🐙 Melo: Saving Job Details...")
 
+
+async def extractPageContent(page: Page) -> dict:
+    print("🐙 Melo: Extracting Job Details...")
     try:
         await page.locator(".profile-heading").wait_for(state="visible", timeout=10000)
-    except Exception:
+    except Error:
         print("⚠️ Melo: Job modal profile heading not visible yet.")
 
+    
     job_title = await _safe_inner_text(page.locator(".profile-heading .profile-info h1"))
     company = await _safe_inner_text(page.locator(".profile-heading .company-name"))
     location = await _safe_inner_text(page.locator(".profile-heading .job-locations > span:first-child"))
@@ -32,32 +32,32 @@ async def extractAndSavePageContent(page: Page):
     recruiter = await _safe_inner_text(page.locator(".profile-heading .rec-name"))
     designation = await _safe_inner_text(page.locator(".profile-heading .designation"))
     summary = await _safe_inner_text(page.locator("#job-description span[ng-repeat*='job_function_dict']"))
+    description = await _safe_inner_text(page.locator("div.profile-content.job-description"))
 
+    
     try:
         skills_locator = page.locator("#job-skills-description li[ng-repeat*='keyword']")
         skills = await skills_locator.all_inner_texts()
         skills = [skill.strip() for skill in skills if skill and skill.strip()]
-    except Exception:
+    except Error:
         skills = []
 
-    description_label = page.locator("div.profile-content.job-description")
-    description = await _safe_inner_text(description_label)
+    return {
+        "job_title": job_title,
+        "company": company,
+        "location": location,
+        "experience": experience,
+        "recruiter": recruiter,
+        "designation": designation,
+        "summary": summary,
+        "skills": skills,
+        "description": description
+    }
 
-    __addToMarkUpFile(job_title, company, location, experience, recruiter, designation, summary, skills, description)
 
 
-
-def __addToMarkUpFile(
-    job_title,
-    company,
-    location,
-    experience,
-    recruiter,
-    designation,
-    summary,
-    skills,
-    description,
-):
+def save_to_markup_file(job_data: dict):
+    
     """
     Append a job to the Markdown file.
 
@@ -75,6 +75,16 @@ def __addToMarkUpFile(
 
     ...
     """
+
+    job_title = job_data.get("job_title", "")
+    company = job_data.get("company", "")
+    location = job_data.get("location", "")
+    experience = job_data.get("experience", "")
+    recruiter = job_data.get("recruiter", "")
+    designation = job_data.get("designation", "")
+    summary = job_data.get("summary", "")
+    skills = job_data.get("skills", [])
+    description = job_data.get("description", "")
 
     output_file = Path(OUTPUT_FILE)
 
