@@ -9,7 +9,12 @@ async def handleLogin(page: Page):
     print("🐙 Melo: Handling Login...")
 
     await page.goto("https://www.instahyre.com/login")
-    await page.wait_for_load_state('domcontentloaded')
+    await page.wait_for_load_state("domcontentloaded")
+
+    # If session is active, Instahyre automatically redirects to candidate feed
+    if "/candidate/" in page.url:
+        print("✅ Melo: Already logged in (session restored)!")
+        return
 
     emailElement: Locator = page.get_by_label("Email", exact=True).locator("visible=true").first
     passwordElement: Locator = page.get_by_label("Password", exact=True).locator("visible=true").first
@@ -24,7 +29,6 @@ async def handleLogin(page: Page):
     await submitButtonElement.click()
 
     print("🐙 Melo: Waiting for login to complete (please solve 2FA if prompted)...")
-    # https://www.instahyre.com/candidate/opportunities/?matching=true
 
     try:
         # Wait up to 2 minutes for the URL to change to the Instahyre feed, confirming login is successful
@@ -33,7 +37,9 @@ async def handleLogin(page: Page):
     except PlaywrightTimeoutError:
         print("⚠️ Melo: Login timed out or failed. Check the browser.")
 
+    await page.wait_for_load_state("load")
     await human_delay()
+
 
 
 

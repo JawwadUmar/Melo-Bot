@@ -1,5 +1,7 @@
 /venv
 notes.txt
 __pycache__/
-/data/session/
+data/session/
 .env
+index.html
+data/job_application.md
